@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>پنل مدیریت</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;800&display=swap" rel="stylesheet">
+<style>
+:root{--y:#FFC62B;--b:#2563EB;--bd:#0B2A6F}*{box-sizing:border-box}
+body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:#F4F8FF;color:#1b2440}
+header{background:var(--bd);color:#fff;padding:14px 5%;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+main{max-width:900px;margin:24px auto;padding:0 16px}
+.box{background:#fff;border-radius:18px;padding:22px;margin-bottom:20px;box-shadow:0 6px 20px #2563eb14;animation:in .5s both}
+@keyframes in{from{opacity:0;transform:translateY(20px)}}
+h2{color:var(--bd);margin:0 0 14px;border-bottom:4px solid var(--y);display:inline-block}
+label{display:block;font-size:13px;color:#6b7aa6;margin:10px 0 4px}
+input,textarea{width:100%;padding:10px 12px;border:2px solid #e3ebff;border-radius:12px;font:inherit;transition:.3s}
+input:focus,textarea:focus{outline:0;border-color:var(--b);box-shadow:0 0 0 4px #2563eb22}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 14px}
+.item{border:2px dashed #cfdcff;border-radius:14px;padding:14px;margin:12px 0;transition:.3s}.item:hover{border-color:var(--y)}
+button{font:inherit;cursor:pointer;border:0;border-radius:30px;padding:9px 22px;background:var(--y);color:var(--bd);font-weight:500;transition:.3s}
+button:hover{transform:translateY(-3px);box-shadow:0 8px 16px #ffc62b66}button.r{background:#fee;color:#c22}button.b{background:var(--b);color:#fff}
+.pv{max-height:90px;border-radius:10px;margin-top:6px;display:block}
+#msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bd);color:#fff;padding:12px 26px;border-radius:30px;opacity:0;transition:.4s;z-index:9}#msg.on{opacity:1}
+.hint{font-size:12px;color:#6b7aa6}
+</style></head><body>
+<header><b>پنل مدیریت سایت</b><button class="b" id="sv" style="display:none" onclick="save()">ذخیره و انتشار</button></header>
+<main>
+<div class="box" id="login"><h2>اتصال به GitHub</h2>
+<div class="row"><div><label>ریپازیتوری (username/repo)</label><input id="rp" placeholder="mahdi/mahdi.github.io"></div>
+<div><label>برنچ</label><input id="br" value="main"></div></div>
+<label>Personal Access Token (فقط Contents: Read and write)</label><input id="tk" type="password" placeholder="github_pat_...">
+<p class="hint">توکن فقط در مرورگر خودتان ذخیره می‌شود. برای همین ریپو یک Fine-grained token بسازید.</p>
+<button class="b" onclick="load()">ورود و بارگذاری</button></div>
+<div id="ed"></div></main><div id="msg"></div>
+<script>
+const $=s=>document.querySelector(s),L=localStorage;let D,SHA,S={};
+$('#rp').value=L.rp||'';$('#br').value=L.br||'main';$('#tk').value=L.tk||'';
+const toast=t=>{$('#msg').textContent=t;$('#msg').classList.add('on');setTimeout(()=>$('#msg').classList.remove('on'),3000)};
+const b64=s=>btoa(unescape(encodeURIComponent(s))),un=s=>decodeURIComponent(escape(atob(s.replace(/\n/g,''))));
+async function gh(p,o={}){const r=await fetch(`https://api.github.com/repos/${S.rp}/contents/${p}${o.method?'':'?ref='+S.br+'&t='+Date.now()}`,{...o,headers:{Authorization:'Bearer '+S.tk,Accept:'application/vnd.github+json'}});
+const j=await r.json();if(!r.ok)throw new Error(j.message);return j}
+async function load(){S={rp:$('#rp').value.trim(),br:$('#br').value.trim(),tk:$('#tk').value.trim()};Object.assign(L,S);
+try{const j=await gh('data.json');SHA=j.sha;D=JSON.parse(un(j.content));$('#login').style.display='none';$('#sv').style.display='';render()}catch(e){toast('خطا: '+e.message)}}
+const LISTS={experience:[['title','عنوان شغلی'],['company','شرکت / محل'],['period','بازه زمانی'],['desc','توضیحات','t'],['image','تصویر','i']],
+education:[['title','عنوان مدرک'],['place','مؤسسه'],['year','سال'],['image','تصویر مدرک','i']],
+skills:[['name','نام مهارت'],['level','درصد (۰ تا ۱۰۰)']],stats:[['num','عدد'],['label','عنوان']]};
+const NAMES={experience:'سابقه کاری',education:'مدارک',skills:'مهارت‌ها',stats:'آمار صفحه اصلی'};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fld(path,f,v){const [k,lb,t]=f;if(t=='i')return `<div><label>${lb}</label><input type="file" accept="image/*" onchange="up(this,'${path}')">${v?`<img class="pv" src="${esc(v)}">`:''}<input value="${esc(v)}" data-k="${path}" oninput="setv(this)" placeholder="مسیر تصویر"></div>`;
+return `<div><label>${lb}</label>${t=='t'?`<textarea rows="3" data-k="${path}" oninput="setv(this)">${esc(v)}</textarea>`:`<input value="${esc(v)}" data-k="${path}" oninput="setv(this)">`}</div>`}
+function render(){let h=`<div class="box"><h2>اطلاعات اصلی</h2><div class="row">`+[['name','نام'],['nameEn','نام انگلیسی'],['title','عنوان'],['age','سن']].map(f=>fld(f[0],f,D[f[0]])).join('')+
+`</div>`+fld('photo',['photo','عکس پروفایل','i'],D.photo)+fld('bio',['bio','درباره من','t'],D.bio)+`</div>`;
+for(const k in LISTS){h+=`<div class="box"><h2>${NAMES[k]}</h2>`;(D[k]||[]).forEach((it,i)=>{h+=`<div class="item"><div class="row">`+LISTS[k].map(f=>fld(`${k}.${i}.${f[0]}`,f,it[f[0]])).join('')+`</div><button class="r" onclick="del('${k}',${i})">حذف</button></div>`});h+=`<button onclick="add('${k}')">+ افزودن</button></div>`}
+const c=D.contact||{};h+=`<div class="box"><h2>اطلاعات تماس</h2><div class="row">`+[['address','محل سکونت'],['phone','تلفن'],['email','ایمیل']].map(f=>fld('contact.'+f[0],f,c[f[0]])).join('')+`</div></div>`;$('#ed').innerHTML=h}
+function setv(el){const p=el.dataset.k.split('.');let o=D;while(p.length>1)o=o[p.shift()];o[p[0]]=el.value}
+function add(k){(D[k]=D[k]||[]).push(Object.fromEntries(LISTS[k].map(f=>[f[0],''])));render()}
+function del(k,i){if(confirm('حذف شود؟')){D[k].splice(i,1);render()}}
+function up(inp,path){const f=inp.files[0];if(!f)return;const im=new Image();im.onload=async()=>{const s=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+const data=c.toDataURL('image/jpeg',.85).split(',')[1],name='images/'+Date.now()+'.jpg';
+try{toast('در حال آپلود تصویر...');await gh(name,{method:'PUT',body:JSON.stringify({message:'upload image',content:data,branch:S.br})});
+const p=path.split('.');let o=D;while(p.length>1)o=o[p.shift()];o[p[0]]=name;render();toast('تصویر آپلود شد. حالا «ذخیره و انتشار» بزنید.')}catch(e){toast('خطا: '+e.message)}};im.src=URL.createObjectURL(f)}
+async function save(){try{['stats','skills'].forEach(k=>(D[k]||[]).forEach(o=>{for(const x in o)if(x=='num'||x=='level')o[x]=+o[x]||0}));D.age=+D.age||D.age;
+const j=await gh('data.json',{method:'PUT',body:JSON.stringify({message:'update site data',content:b64(JSON.stringify(D,null,2)),sha:SHA,branch:S.br})});SHA=j.content.sha;toast('ذخیره شد؛ تا ۱ دقیقه دیگر روی سایت اعمال می‌شود.')}catch(e){toast('خطا: '+e.message)}}
+</script></body></html>
